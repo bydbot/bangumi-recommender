@@ -1,0 +1,6 @@
+**/__pycache__/
+/.trae/
+/db
+/outputs
+/models
+/tests
