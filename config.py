@@ -11,6 +11,7 @@ ANIME_META_DB = os.path.join(DB_DIR, "anime_meta.db")
 API_CACHE_DB = os.path.join(DB_DIR, "api_cache.db")
 SEASONAL_DB = os.path.join(DB_DIR, "seasonal.db")
 RECOMMEND_CACHE_DB = os.path.join(DB_DIR, "recommend_cache.db")
+COMMENTS_DB = os.path.join(DB_DIR, "comments.db")
 API_CACHE_TTL_HOURS = 168
 
 ANIME_JSONLINES = "e:/bangumi/bangumi/Animes.jsonlines"
@@ -38,8 +39,12 @@ HOT_MIN_RATING_COUNT = 2000
 HOT_TIME_DECAY_HALF_LIFE_DAYS = 360
 HOT_NORMALIZE_RATING_SCALE = 10.0
 
+CACHE_ENGINE_TOP_M = 125
 RECOMMEND_CACHE_TTL_HOURS = 168
-ENABLE_LLM = False
+ENABLE_LLM = True
+
+LLM_EMBEDDINGS_DIR = r"E:\bangumi\crawler\embeddings"
+LLM_MIN_RATED_COUNT = 3
 
 FUSION_WEIGHTS_BY_PROFILE = {
     "small_collection": {
@@ -48,8 +53,8 @@ FUSION_WEIGHTS_BY_PROFILE = {
         EngineName.LLM: 0.30,
     },
     "gcn_user": {
-        EngineName.GCN: 0.60,
-        EngineName.LLM: 0.40,
+        EngineName.GCN: 0.5,
+        EngineName.LLM: 0.5,
     },
     "rich_no_gcn": {
         EngineName.ITEMCF: 0.40,

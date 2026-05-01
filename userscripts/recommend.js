@@ -216,80 +216,115 @@
       border: 1px solid #ddd;
       border-radius: 8px;
       padding: 12px;
-      min-width: 200px;
-      max-width: 300px;
+      min-width: 280px;
+      max-width: 400px;
+      max-height: 500px;
+      overflow-y: auto;
       box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-      font-size: 13px;
-      pointer-events: none;
+      font-size: 12px;
+      line-height: 1.6;
+      pointer-events: auto;
       color: #333;
     }
 
-    @media (prefers-color-scheme: dark) {
-      #rec-topk-input {
-        background: #2d2d2d;
-        color: #ccc;
-        border-color: #555;
-      }
+    .rec-tooltip-title {
+      font-size: 14px;
+      font-weight: bold;
+      margin-bottom: 8px;
+      color: #333;
+    }
 
-      #rec-fetch-btn {
-        background: #2d2d2d;
-        color: #ccc;
-        border-color: #555;
-      }
+    .rec-tooltip-comment {
+      font-size: 12px;
+      color: #444;
+      line-height: 1.6;
+    }
 
-      #rec-fetch-btn:hover:not(:disabled) {
-        background: #3a3a3a;
-      }
+    .rec-tooltip-no-comment {
+      color: #aaa;
+      font-style: italic;
+    }
 
-      #rec-loader-spinner {
-        border-color: #555;
-        border-top-color: #FF6384;
-      }
+    html[data-theme="dark"] #rec-topk-input {
+      background: #2d2d2d;
+      color: #ccc;
+      border-color: #555;
+    }
 
-      #rec-results::-webkit-scrollbar-thumb {
-        background: #555;
-      }
+    html[data-theme="dark"] #rec-fetch-btn {
+      background: #2d2d2d;
+      color: #ccc;
+      border-color: #555;
+    }
 
-      #rec-results::-webkit-scrollbar-thumb:hover {
-        background: #777;
-      }
+    html[data-theme="dark"] #rec-fetch-btn:hover:not(:disabled) {
+      background: #3a3a3a;
+    }
 
-      .rec-item {
-        border-bottom-color: #333;
-      }
+    html[data-theme="dark"] #rec-loader-spinner {
+      border-color: #555;
+      border-top-color: #FF6384;
+    }
 
-      .rec-item:hover {
-        background: #2a2a2a;
-      }
+    html[data-theme="dark"] #rec-results::-webkit-scrollbar-thumb {
+      background: #555;
+    }
 
-      .rec-item-title {
-        color: #ccc;
-      }
+    html[data-theme="dark"] #rec-results::-webkit-scrollbar-thumb:hover {
+      background: #777;
+    }
 
-      .rec-tag {
-        color: #aaa;
-        background: #2d2d2d;
-        border-color: #444;
-      }
+    html[data-theme="dark"] .rec-item {
+      border-bottom-color: #333;
+    }
 
-      .rec-tag-rank {
-        color: #ff8fab;
-        background: #3d1a24;
-        border-color: #5c2d3a;
-      }
+    html[data-theme="dark"] .rec-item:hover {
+      background: #2a2a2a;
+    }
 
-      .rec-tag-score {
-        color: #ffb74d;
-        background: #3d2a10;
-        border-color: #5c4220;
-      }
+    html[data-theme="dark"] .rec-item-title {
+      color: #ccc;
+    }
 
-      #rec-tooltip {
-        background: #2d2d2d;
-        border-color: #555;
-        color: #ccc;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.4);
-      }
+    html[data-theme="dark"] .rec-tag {
+      color: #aaa;
+      background: #2d2d2d;
+      border-color: #444;
+    }
+
+    html[data-theme="dark"] .rec-tag-rank {
+      color: #ff8fab;
+      background: #3d1a24;
+      border-color: #5c2d3a;
+    }
+
+    html[data-theme="dark"] .rec-tag-score {
+      color: #ffb74d;
+      background: #3d2a10;
+      border-color: #5c4220;
+    }
+
+    html[data-theme="dark"] #rec-tooltip {
+      background: #2d2d2d;
+      border-color: #555;
+      color: #ccc;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+    }
+
+    html[data-theme="dark"] .rec-tooltip-title {
+      color: #ddd;
+    }
+
+    html[data-theme="dark"] .rec-tooltip-comment {
+      color: #bbb;
+    }
+
+    html[data-theme="dark"] .rec-tooltip-no-comment {
+      color: #666;
+    }
+
+    html[data-theme="dark"] .rec-item-link img {
+      background: #333 !important;
     }
   `
   document.head.appendChild(style)
@@ -410,6 +445,21 @@
     return data
   }
 
+  function buildTooltipContent(rec) {
+    const comment = rec.comment
+    const title = rec.name_cn || rec.name || `条目 ${rec.subject_id}`
+
+    let html = `<div class="rec-tooltip-title">${title}</div>`
+
+    if (comment && comment.overall_comment) {
+      html += `<div class="rec-tooltip-comment">${comment.overall_comment}</div>`
+    } else {
+      html += '<div class="rec-tooltip-no-comment">暂无评论</div>'
+    }
+
+    tooltip.innerHTML = html
+  }
+
   function renderResults(recommendations) {
     resultContainer.innerHTML = ''
 
@@ -438,7 +488,7 @@
       img.loading = 'lazy'
       img.alt = '加载中...'
       img.style.background = '#f0f0f0'
-      if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+      if (document.documentElement.getAttribute('data-theme') === 'dark') {
         img.style.background = '#333'
       }
       imgLink.appendChild(img)
@@ -456,14 +506,6 @@
       const meta = document.createElement('div')
       meta.className = 'rec-item-meta'
 
-      // 使用推荐接口返回的 ranking（全站排名）
-      if (item.ranking != null && item.ranking > 0) {
-        const rankTag = document.createElement('span')
-        rankTag.className = 'rec-tag rec-tag-rank'
-        rankTag.textContent = `#${item.ranking}`
-        meta.appendChild(rankTag)
-      }
-
       info.appendChild(titleLink)
       info.appendChild(meta)
 
@@ -472,12 +514,13 @@
 
       // 悬停事件
       div.addEventListener('mouseenter', (e) => {
-        tooltip.innerHTML = '<div style="color:#aaa;">悬停提示（待实现）</div>'
+        const rec = itemElements[index].recommendation
+        buildTooltipContent(rec)
         tooltip.style.display = 'block'
 
         const rect = div.getBoundingClientRect()
-        const tooltipWidth = tooltip.offsetWidth || 220
-        const tooltipHeight = tooltip.offsetHeight || 50
+        const tooltipWidth = tooltip.offsetWidth || 300
+        const tooltipHeight = tooltip.offsetHeight || 100
         let left = rect.left - tooltipWidth - 10
         let top = rect.top
 
@@ -498,7 +541,7 @@
       })
 
       resultContainer.appendChild(div)
-      itemElements.push({ div, img, meta, titleLink })
+      itemElements.push({ div, img, meta, titleLink, recommendation: item })
     })
 
     resultContainer.style.display = 'block'

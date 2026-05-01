@@ -100,7 +100,9 @@ def init_engines() -> Dict[EngineName, BaseRecommender]:
     if config.ENABLE_LLM:
         try:
             from engines.llm.engine import LLMRecommender
-            engines[EngineName.LLM] = LLMRecommender()
+            engines[EngineName.LLM] = LLMRecommender(
+                embeddings_dir=config.LLM_EMBEDDINGS_DIR,
+            )
         except Exception as e:
             print(f"[main] LLM 引擎加载失败，已跳过: {e}")
 
@@ -138,14 +140,6 @@ def run_recommend(username: str, top_k: int = 100, use_cache: bool = True,
 
     engines = _get_engines()
     router = RecommendRouter(engines)
-
-    if use_cache:
-        rcache = RecommendCache()
-        cached = rcache.get_for_user(ctx, top_k, available_engines=set(engines.keys()))
-        if cached:
-            print(f"[main] (推荐缓存命中)")
-            return cached
-
     selected = router.route(ctx)
     selected_names = [e.name.value for e in selected]
     engine_combo = "+".join(selected_names)
@@ -156,13 +150,58 @@ def run_recommend(username: str, top_k: int = 100, use_cache: bool = True,
         "gcn_user" if ctx.in_training_data else "rich_no_gcn"
     )
     weights = config.FUSION_WEIGHTS_BY_PROFILE[profile_key]
-    fusion = WeightedFusion(weights)
+
+    rcache = RecommendCache()
+
+    if use_cache:
+        cached = rcache.try_fusion_from_cache(ctx, top_k, weights, available_engines=set(engines.keys()))
+        if cached:
+            from data.comments_db import get_comment
+
+            enriched = []
+            for rec in cached["recommendations"]:
+                comment = get_comment(rec["subject_id"])
+                if comment:
+                    rec["comment"] = comment.to_dict()
+                enriched.append(rec)
+            cached["recommendations"] = enriched
+            return cached
+
+    print(f"[main] 引擎缓存未命中，执行推荐计算")
+    top_m = config.CACHE_ENGINE_TOP_M
 
     results_by_engine: Dict[EngineName, List[RecommendItem]] = {}
     for engine in selected:
-        results_by_engine[engine.name] = engine.recommend(ctx, top_k)
+        engine_results = engine.recommend(ctx, top_m)
+        results_by_engine[engine.name] = engine_results
+        if use_cache:
+            rcache.save_engine_results(username, engine.name, engine_results)
+            print(f"[main] 引擎 {engine.name.value} 结果已缓存 (top {min(len(engine_results), top_m)})")
 
+    fusion = WeightedFusion(weights)
     final = fusion.merge(results_by_engine, ctx, top_k)
+
+    from data.comments_db import get_comment
+
+    recommendations_output = []
+    for it in final:
+        item_dict = {
+            "rank": it.rank,
+            "subject_id": it.subject_id,
+            "name": it.name_cn or it.name,
+            "name_cn": it.name_cn,
+            "score": it.score,
+            "source": it.source.value,
+            "is_wished": it.is_wished,
+            "rating_score": it.rating_score,
+            "reasons": it.reasons,
+        }
+
+        comment = get_comment(it.subject_id)
+        if comment:
+            item_dict["comment"] = comment.to_dict()
+
+        recommendations_output.append(item_dict)
 
     output = {
         "user_id": username,
@@ -172,26 +211,8 @@ def run_recommend(username: str, top_k: int = 100, use_cache: bool = True,
         "in_training_data": ctx.in_training_data,
         "gcn_exclude_items": len(ctx.gcn_exclude_items),
         "gcn_new_for_warm": len(ctx.gcn_new_for_warm),
-        "recommendations": [
-            {
-                "rank": it.rank,
-                "subject_id": it.subject_id,
-                "name": it.name_cn or it.name,
-                "name_cn": it.name_cn,
-                "score": it.score,
-                "source": it.source.value,
-                "is_wished": it.is_wished,
-                "rating_score": it.rating_score,
-                "reasons": it.reasons,
-            }
-            for it in final
-        ],
+        "recommendations": recommendations_output,
     }
-
-    if use_cache:
-        rcache = RecommendCache()
-        rcache.set(username, engine_combo, top_k, output)
-        print(f"[main] (推荐结果已缓存)")
 
     return output
 
