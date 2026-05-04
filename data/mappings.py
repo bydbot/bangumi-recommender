@@ -34,8 +34,8 @@ class IDMapping:
     def lookup_gcn_item(self, subject_id: int) -> Optional[int]:
         return self._subject_to_gcn_item.get(subject_id)
 
-    def lookup_subject(self, mapped_id: int) -> int:
-        return self._gcn_item_to_subject.get(mapped_id, mapped_id)
+    def lookup_subject(self, mapped_id: int) -> Optional[int]:
+        return self._gcn_item_to_subject.get(mapped_id)
 
     def is_gcn_user(self, user_id: str) -> bool:
         return user_id in self._original_to_gcn_user

@@ -84,13 +84,16 @@ class GCNRecommender(BaseRecommender):
             scores, indices = torch.topk(ratings, k=top_k)
 
         results = []
+        rank = 1
         for i in range(min(top_k, scores.size(1))):
             mapped_item_id = indices[0][i].item()
             score = round(scores[0][i].item(), 4)
             subject_id = mappings.lookup_subject(mapped_item_id)
+            if subject_id is None:
+                continue
             results.append(
                 RecommendItem(
-                    rank=i + 1,
+                    rank=rank,
                     subject_id=subject_id,
                     name=get_anime_name(subject_id),
                     name_cn=get_anime_name(subject_id),
@@ -99,4 +102,5 @@ class GCNRecommender(BaseRecommender):
                     rating_score=get_anime_rating(subject_id),
                 )
             )
+            rank += 1
         return results
