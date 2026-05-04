@@ -208,7 +208,7 @@ combo = "+".join(engine_name.value for engine_name in names)
 | 方法 | 说明 |
 |------|------|
 | `lookup_gcn_item(subject_id)` | Bangumi Subject ID → GCN Item ID，找不到返回 None |
-| `lookup_subject(mapped_id)` | GCN Item ID → Bangumi Subject ID |
+| `lookup_subject(mapped_id)` | GCN Item ID → Bangumi Subject ID，找不到返回 None |
 | `is_gcn_user(user_id)` | 用户是否在 GCN 训练集中 |
 | `get_gcn_user_id(user_id)` | 获取 GCN 用户 ID，不在则返回 None |
 | `subjects_to_gcn_items(subject_ids)` | 批量转换，自动过滤无映射的 |

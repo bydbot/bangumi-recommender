@@ -60,7 +60,7 @@ recommend(ctx, top_k)
 │   └── torch.topk → top_k 个最高分
 │
 └── 6. 映射回 Bangumi ID + 补充元数据
-    └── lookup_subject(mapped_item_id)
+    └── lookup_subject(mapped_item_id) → 若为 None 则跳过该物品
     └── get_anime_name / get_anime_rating
 ```
 
